@@ -1,47 +1,62 @@
+import { MongoClient, ObjectId } from "mongodb";
 import MeeetupDetail from "../../components/meetups/MeetupDetail";
 
 function MeetupDetailPage(props) {
+  const { image, title, address, description } = props.meetupData;
   return (
     <MeeetupDetail
-      image="https://www.infobuildenergia.it/wp-content/uploads/2023/07/legge-ripristino-natura-1.jpg"
-      title="A First Meetup"
-      address="Some Address 5, Some City"
-      description="The Meetup Description"
+      image={image}
+      title={title}
+      address={address}
+      description={description}
     />
   );
 }
 
 export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://Antonina:pGWZI2pmE6oxYPoz@cluster0.lideuo9.mongodb.net/meetups?retryWrites=true&w=majority&appName=Cluster0"
+  );
+
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+
+  const meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+
+  client.close();
+
   return {
     fallback: false,
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
-      },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-    ],
+    paths: meetups.map((meetup) => ({
+      params: { meetupId: meetup._id.toString() },
+    })),
   };
 }
 
 export async function getStaticProps(context) {
   const meetupId = context.params.meetupId;
-  console.log(meetupId);
-  // fetch data for a single meetup
+
+  const client = await MongoClient.connect(
+    "mongodb+srv://Antonina:pGWZI2pmE6oxYPoz@cluster0.lideuo9.mongodb.net/meetups?retryWrites=true&w=majority&appName=Cluster0"
+  );
+
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+
+  client.close();
+
   return {
     props: {
       meetupData: {
-        id: meetupId,
-        image:
-          "https://www.infobuildenergia.it/wp-content/uploads/2023/07/legge-ripristino-natura-1.jpg",
-        title: "A First Meetup",
-        address: "Some Address 5, Some City",
-        description: "The Meetup Description",
+        id: selectedMeetup._id.toString(),
+        title: selectedMeetup.title,
+        image: selectedMeetup.image,
+        address: selectedMeetup.address,
+        description: selectedMeetup.description,
       },
     },
   };
